@@ -1,0 +1,43 @@
+#!/usr/bin/bash
+
+compiler="gcc"
+
+ARGS=()
+OUTPUT_ARG=""
+INPUT_ARGS=("$@")
+intercept_compilation=false
+for ((i = 0; i <= $#; i++)); do
+	var=${INPUT_ARGS[$i]}
+
+	if [[ "$var" == "-c" ]]; then
+		intercept_compilation=true
+	fi
+
+	if [[ "$var" == "-o" ]]; then
+		ARGS+=("$var")
+		i=$((i + 1))
+		var=${INPUT_ARGS[$i]}
+		dirname=$(dirname -- "$var")
+		filename=$(basename -- "$var")
+		OUTPUT_ARG="${dirname}/${filename}.d"
+		ARGS+=("$OUTPUT_ARG")
+	else
+		ARGS+=("$var")
+	fi
+done
+
+export IFS=' '
+if [ "$intercept_compilation" == true ]; then
+	#shopt -s nocasematch
+	${compiler} "${@}"
+	ret=$?
+	if [ -z "$OUTPUT_ARG" ]; then
+		echo "Missing output filename specification"
+	else
+		${compiler} -E -dM ${ARGS[@]}
+	fi
+else
+	${compiler} "${@}"
+	ret=$?
+fi
+exit $ret
