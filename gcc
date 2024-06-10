@@ -1,6 +1,6 @@
 #!/usr/bin/bash
 
-compiler="gcc"
+compiler="mpicc"
 
 ARGS=()
 OUTPUT_ARG=""

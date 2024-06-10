@@ -1,6 +1,6 @@
 #!/usr/bin/bash
 
-compiler="/usr/bin/gfortran-11"
+compiler="mpif90"
 
 ARGS=()
 OUTPUT_ARG=""
