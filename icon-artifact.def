@@ -4,7 +4,7 @@ From: ez82/udi/ubuntu-22.04-ef5:latest
 %post
     # install as many deps as we can using apt
     apt-get -y update
-    apt-get install -y wget build-essential mpi-default-dev libnetcdf-mpi-dev libnetcdff-dev libscalapack-mpi-dev git python3
+    apt-get install -y wget build-essential mpi-default-dev libnetcdf-mpi-dev libnetcdff-dev libscalapack-mpi-dev git python3 bear
 
     # download and extract icon in /opt/icon
     bash -c "mkdir -pv /opt/icon && cd /opt/icon && wget --no-check-certificate https://gitlab.dkrz.de/icon/icon-model/-/archive/icon-2024.01-1-public/icon-model-icon-2024.01-1-public.tar.gz && tar xf icon-model*.tar.gz"
@@ -15,9 +15,10 @@ From: ez82/udi/ubuntu-22.04-ef5:latest
     # add the f2dace compiler wrappers
     bash -c "cd /opt && git clone https://github.com/tim0s/f2dace_integration_tools.git"
 
-    # Compile ICON with lex settings
-    bash -c "cd /opt/icon/icon-model-icon-2024.01-1-public && ./configure CC=mpicc FC=mpif90 FCFLAGS='-I/usr/include' LIBS='-lnetcdff -lnetcdf -llapack -lblas' --disable-coupling --enable-openmp --enable-mpi  && make"
-    #bash -c "cd /opt/icon/icon-model-icon-2024.01-1-public && ./configure CC=/opt/f2dace_integration_tools/gcc FC=/opt/f2dace_integration_tools/gfortran FCFLAGS='-I/usr/include' LIBS='-lnetcdff -lnetcdf -llapack -lblas' --disable-coupling --enable-openmp --enable-mpi  && make"
+    # Compile ICON and get compile_commands.json from bear
+    bash -c "cd /opt/icon/icon-model-icon-2024.01-1-public && ./configure CC=mpicc FC=mpif90 FCFLAGS='-I/usr/include' LIBS='-lnetcdff -lnetcdf -llapack -lblas' --disable-coupling --enable-openmp --enable-mpi && bear -- make"
+    # lex compiler wrappers
+    # bash -c "cd /opt/icon/icon-model-icon-2024.01-1-public && ./configure CC=/opt/f2dace_integration_tools/gcc FC=/opt/f2dace_integration_tools/gfortran FCFLAGS='-I/usr/include' LIBS='-lnetcdff -lnetcdf -llapack -lblas' --disable-coupling --enable-openmp --enable-mpi  && make"
 
 %environment
     export LC_ALL=C
