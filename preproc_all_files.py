@@ -24,7 +24,7 @@ for cmd in compile_commands:
     m = re.match("^(.+)(\..+?)$", cmd['file'])
     assert(m is not None)
     preproc_outfile = f"{m[1]}_preprocessed{m[2]}"
-    deps_outfile = f"{m[1]}.d}"
+    deps_outfile = f"{m[1]}.d"
     
     # preprocess the file by adding -E -cpp to the compiler flags 
     print(f"Preprocessing {m[1]}{m[2]}\n output will go to {preproc_outfile}")
@@ -37,15 +37,15 @@ for cmd in compile_commands:
     os.system(preproc_cmd)
     cmd['arguments'] = args_copy
 
-    # get deps by adding -dM to the compiler flags 
-    print(f"Generating dependencies for {m[1]}{m[2]}\n output will go to {deps_outfile}")
-    for i,arg in enumerate(cmd['arguments']):
-      if arg == '-o':
-        cmd['arguments'][i+1] = deps_outfile
-    args = cmd['arguments'] + [f"-dM"]
-    preproc_cmd = " ".join(args)
-    print("Running: "+preproc_cmd)
-    os.system(preproc_cmd)
+    # get deps by adding -dM to the compiler flags --- this does not generate deps???
+    #print(f"Generating dependencies for {m[1]}{m[2]}\n output will go to {deps_outfile}")
+    #for i,arg in enumerate(cmd['arguments']):
+    #  if arg == '-o':
+    #    cmd['arguments'][i+1] = deps_outfile
+    #args = cmd['arguments'] + [f"-dM"]
+    #preproc_cmd = " ".join(args)
+    #print("Running: "+preproc_cmd)
+    #os.system(preproc_cmd)
 
 
 
