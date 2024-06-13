@@ -18,8 +18,9 @@ From: ez82/udi/ubuntu-22.04-ef5:latest
 
     # Compile ICON and get compile_commands.json from bear
     bash -c "cd /opt/icon/icon-model-icon-2024.01-1-public && ./configure CC=mpicc FC=mpif90 FCFLAGS='-I/usr/include' LIBS='-lnetcdff -lnetcdf -llapack -lblas' --disable-coupling --enable-openmp --enable-mpi && bear -- make"
-    # lex compiler wrappers
-    # bash -c "cd /opt/icon/icon-model-icon-2024.01-1-public && ./configure CC=/opt/f2dace_integration_tools/gcc FC=/opt/f2dace_integration_tools/gfortran FCFLAGS='-I/usr/include' LIBS='-lnetcdff -lnetcdf -llapack -lblas' --disable-coupling --enable-openmp --enable-mpi  && make"
+
+    # apply preprocessing to all files (calls cpp, using the same includes as the real compilation)
+    bash - c "cd /opt/f2dace_integration_tools/ && python3 ./preproc_all_files.py ../icon/icon-model-icon-2024.01-1-public/compile_commands.json"
 
 %environment
     export LC_ALL=C

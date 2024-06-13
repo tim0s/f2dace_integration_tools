@@ -27,15 +27,29 @@ for cmd in compile_commands:
     deps_outfile = f"{m[1]}.d"
     
     # preprocess the file by adding -E -cpp to the compiler flags 
-    print(f"Preprocessing {m[1]}{m[2]}\n output will go to {preproc_outfile}")
+    #print(f"Preprocessing {m[1]}{m[2]}\n output will go to {preproc_outfile}")
     for i,arg in enumerate(cmd['arguments']):
       if arg == '-o':
         cmd['arguments'][i+1] = preproc_outfile
     args = cmd['arguments'] + [f"-E -cpp"]
     preproc_cmd = " ".join(args)
-    print("Running: "+preproc_cmd)
+    #print("Running: "+preproc_cmd)
     os.system(preproc_cmd)
-    cmd['arguments'] = args_copy
+
+    # the preprocessed file still contains preprocessor directives (line number hints)
+    # we turn them into fortran comments if we are processing a fortran file
+
+    if ".f" in m[2].lower():
+        try:
+          with open(preproc_outfile, "r") as infile:
+            text = infile.read()
+            newtext = re.sub("^(\s*)#", "!#", text, flags=re.MULTILINE)
+            with open(cmd['file'], "w") as outfile:
+                outfile.truncate(0)
+                outfile.write(newtext)
+            os.remove(preproc_outfile)
+        except:
+            pass # some files get overwritten (used by cmake to test compilers)
 
     # get deps by adding -dM to the compiler flags --- this does not generate deps???
     #print(f"Generating dependencies for {m[1]}{m[2]}\n output will go to {deps_outfile}")
