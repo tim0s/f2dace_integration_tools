@@ -3,6 +3,10 @@ import sqlite3
 import re
 import os
 from glob import glob
+import networkx as nx
+import matplotlib.pyplot as plt
+
+
 
 
 def init_db():
@@ -52,17 +56,20 @@ def find_file_id(fname, cur):
     raise ValueError("There seem to be multiple files with the same name!")
 
 
-def add_dependency(src, dep):
-  con = sqlite3.connect("icon.db")
-  cur = con.cursor()
-  src = find_file_id(src, cur);
-  dep = find_file_id(dep, cur);
+def add_dependency(src, dep, cur=None, con=None):
+  if cur is None:
+    con = sqlite3.connect("icon.db")
+    cur = con.cursor()
+  src = find_file_id(src, cur)
+  dep = find_file_id(dep, cur)
   if (src is not None) and (dep is not None):
     if src != dep:
       cur.execute(f"INSERT INTO dependencies (src_id, dep_id) VALUES ({src}, {dep});")
   con.commit()
 
 def parse_dep(dep_file):
+  con = sqlite3.connect("icon.db")
+  cur = con.cursor()
   with open(dep_file, "r") as df:
     lines = df.readlines()
     for line in lines:
@@ -75,8 +82,20 @@ def parse_dep(dep_file):
           r = r.split('.')[0]
           l = l.split('/')[-1]
           r = r.split('/')[-1]
-          add_dependency(l,r)
+          add_dependency(l,r, cur, con)
   
+
+def generate_build_order():
+  con = sqlite3.connect("icon.db")
+  cur = con.cursor()
+  res = cur.execute(f"SELECT src_id, dep_id FROM dependencies;")
+  r = res.fetchall()
+  G = nx.DiGraph()
+  G.add_edges_from(r)
+  r = nx.dfs_postorder_nodes(G)
+  return r
+
+
 
 parser = argparse.ArgumentParser(
                     prog='f2dace_depbuilder',
@@ -88,17 +107,32 @@ args = parser.parse_args()
 init_db()
 
 # add all source files to a db
+print("Processing FORTRAN sources...")
 src_files = []
 for filename in glob(f"**/*.f90", root_dir=args.srcdir, recursive=True):
     src_files.append(filename)
 populate_src_db(src_files, os.path.join(os.getcwd(),args.srcdir))
+print(str(len(src_files))+ " added to database.")
 
 # add all deps to a db
+print("Processing dependencies...")
 dep_files = []
 for filename in glob(f"**/*.d", root_dir=args.srcdir, recursive=True):
     dep_files.append(filename)
 for dep_file in dep_files:
   parse_dep(os.path.join(args.srcdir, dep_file))
+print("done.")
 
 
+# compile each file (bottom up in the dep tree)
+build_order = generate_build_order()
+os._exit(0)
+
+for fid in build_order:
+   error = compile_fid(fid)
+   if error is not None:
+     insert_error_into_db(fid, error)
+
+# produce reports
+# TODO
 
