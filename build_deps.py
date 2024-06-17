@@ -101,7 +101,7 @@ def compile_fid(file_id, srcdir):
   res = cur.execute(f"SELECT path, name, extension FROM files WHERE id == {file_id};")
   r = res.fetchall()
   path = f"{r[0][0]}/{r[0][1]}.{r[0][2]}"
-  res = os.system(f"python3 ./compile_fortran.py {srcdir} ./sdfgs")
+  res = os.system(f"python3 ./compile_fortran.py {srcdir} {path} ./sdfgs")
   return None
 
 
