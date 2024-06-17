@@ -95,6 +95,14 @@ def generate_build_order():
   r = nx.dfs_postorder_nodes(G)
   return r
 
+def compile_fid(file_id, srcdir):
+  con = sqlite3.connect("icon.db")
+  cur = con.cursor()
+  res = cur.execute(f"SELECT path, name, extension FROM files WHERE id == {file_id};")
+  r = res.fetchall()
+  path = f"{r[0][0]}/{r[0][1]}.{r[0][2]}"
+  res = os.system(f"python3 ./compile_fortran.py {srcdir} ./sdfgs")
+  return None
 
 
 parser = argparse.ArgumentParser(
@@ -126,12 +134,8 @@ print("done.")
 
 # compile each file (bottom up in the dep tree)
 build_order = generate_build_order()
-os._exit(0)
-
 for fid in build_order:
-   error = compile_fid(fid)
-   if error is not None:
-     insert_error_into_db(fid, error)
+   error = compile_fid(fid, args.srcdir)
 
 # produce reports
 # TODO
