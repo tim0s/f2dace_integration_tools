@@ -42,12 +42,17 @@ if __name__ == "__main__":
     fortran_files = find_path_recursive(args.basedir)
     inc_list = [args.basedir + "/include"]
     
-    sdfg = fortran_parser.create_sdfg_from_fortran_file_with_options(
-        args.infile,
-        include_list=inc_list,
-        source_list=fortran_files,
-        icon_sources_dir=args.basedir,
-        icon_sdfgs_dir=args.outfile,
-        normalize_offsets=True)
+    try:
+        sdfg = fortran_parser.create_sdfg_from_fortran_file_with_options(
+            args.infile,
+            include_list=inc_list,
+            source_list=fortran_files,
+            icon_sources_dir=args.basedir,
+            icon_sdfgs_dir=args.outfile,
+            normalize_offsets=True)
+    except Exception as e:
+        print(e)
+        os._exit(-1)
+    
+    os._exit(0)
 
-    #sdfg.view()

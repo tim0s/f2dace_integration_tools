@@ -4,8 +4,7 @@ import re
 import os
 from glob import glob
 import networkx as nx
-import matplotlib.pyplot as plt
-
+import subprocess
 
 
 
@@ -56,16 +55,13 @@ def find_file_id(fname, cur):
     raise ValueError("There seem to be multiple files with the same name!")
 
 
-def add_dependency(src, dep, cur=None, con=None):
-  if cur is None:
-    con = sqlite3.connect("icon.db")
-    cur = con.cursor()
+def add_dependency(src, dep, cur, con):
   src = find_file_id(src, cur)
   dep = find_file_id(dep, cur)
   if (src is not None) and (dep is not None):
     if src != dep:
       cur.execute(f"INSERT INTO dependencies (src_id, dep_id) VALUES ({src}, {dep});")
-  con.commit()
+
 
 def parse_dep(dep_file):
   con = sqlite3.connect("icon.db")
@@ -83,6 +79,8 @@ def parse_dep(dep_file):
           l = l.split('/')[-1]
           r = r.split('/')[-1]
           add_dependency(l,r, cur, con)
+  con.commit()
+  con.close()
   
 
 def generate_build_order():
@@ -93,6 +91,7 @@ def generate_build_order():
   G = nx.DiGraph()
   G.add_edges_from(r)
   r = nx.dfs_postorder_nodes(G)
+  con.close()
   return r
 
 def compile_fid(file_id, srcdir):
@@ -101,7 +100,20 @@ def compile_fid(file_id, srcdir):
   res = cur.execute(f"SELECT path, name, extension FROM files WHERE id == {file_id};")
   r = res.fetchall()
   path = f"{r[0][0]}/{r[0][1]}.{r[0][2]}"
-  res = os.system(f"python3 ./compile_fortran.py {srcdir} {path} ./sdfgs")
+  cmd = f"python3 ./compile_fortran.py {srcdir} {path} ./sdfgs"
+  output = None
+  try:
+    res = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=90)
+    output = "Stderr:\n" + str(res.stderr) + "\n\nStdout:\n" + str(res.stdout)
+    if res.returncode == 0:
+      pass
+    else:
+      output = "Stderr:\n" + str(res.stderr) + "\n\nStdout:\n" + str(res.stdout)
+      cur.execute(f"INSERT INTO errors (file_id, error_text, error_class) VALUES ({file_id}, \"{output}\", \"compile_error\");")
+  except subprocess.TimeoutExpired:
+     cur.execute(f"INSERT INTO errors (file_id, error_text, error_class) VALUES ({file_id}, \"{output}\", \"timeout\");")
+  con.commit()
+  con.close()
   return None
 
 
@@ -133,9 +145,12 @@ print("done.")
 
 
 # compile each file (bottom up in the dep tree)
+print("Compiling all source files")
 build_order = generate_build_order()
-for fid in build_order:
-   error = compile_fid(fid, args.srcdir)
+for idx,fid in enumerate(build_order):
+   print(f"Compiling {idx} of {len(build_order)}")
+   compile_fid(fid, args.srcdir)
+print("Compilation complete")
 
 # produce reports
 # TODO
