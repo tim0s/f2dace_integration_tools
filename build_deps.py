@@ -109,9 +109,9 @@ def compile_fid(file_id, srcdir):
       pass
     else:
       output = "Stderr:\n" + str(res.stderr) + "\n\nStdout:\n" + str(res.stdout)
-      cur.execute(f"INSERT INTO errors (file_id, error_text, error_class) VALUES (?,?,?);", file_id, output, "compile_error")
+      cur.execute(f"INSERT INTO errors (file_id, error_text, error_class) VALUES (?,?,?);", (file_id, output, "compile_error"))
   except subprocess.TimeoutExpired:
-     cur.execute(f"INSERT INTO errors (file_id, error_text, error_class) VALUES (?,?,?);", file_id, output, "timeout")
+     cur.execute(f"INSERT INTO errors (file_id, error_text, error_class) VALUES (?,?,?);", (file_id, output, "timeout"))
 
   con.commit()
   con.close()
