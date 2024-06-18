@@ -148,7 +148,7 @@ print("done.")
 print("Compiling all source files")
 build_order = generate_build_order()
 for idx,fid in enumerate(build_order):
-   print(f"Compiling {idx} of {len(build_order)}")
+   print(f"Compiling {idx} of {len(list(build_order))}")
    compile_fid(fid, args.srcdir)
 print("Compilation complete")
 
