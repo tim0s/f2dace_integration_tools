@@ -92,7 +92,7 @@ def generate_build_order():
   G.add_edges_from(r)
   r = nx.dfs_postorder_nodes(G)
   con.close()
-  return r
+  return list(r)
 
 def compile_fid(file_id, srcdir):
   con = sqlite3.connect("icon.db")
@@ -103,15 +103,16 @@ def compile_fid(file_id, srcdir):
   cmd = f"python3 ./compile_fortran.py {srcdir} {path} ./sdfgs"
   output = None
   try:
-    res = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=90)
+    res = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=180)
     output = "Stderr:\n" + str(res.stderr) + "\n\nStdout:\n" + str(res.stdout)
     if res.returncode == 0:
       pass
     else:
       output = "Stderr:\n" + str(res.stderr) + "\n\nStdout:\n" + str(res.stdout)
-      cur.execute(f"INSERT INTO errors (file_id, error_text, error_class) VALUES ({file_id}, \"{output}\", \"compile_error\");")
+      cur.execute(f"INSERT INTO errors (file_id, error_text, error_class) VALUES (?,?,?);", [(file_id, output, "compile_error")] )
   except subprocess.TimeoutExpired:
-     cur.execute(f"INSERT INTO errors (file_id, error_text, error_class) VALUES ({file_id}, \"{output}\", \"timeout\");")
+     cur.execute(f"INSERT INTO errors (file_id, error_text, error_class) VALUES (?,?,?);", [(file_id, output, "timeout")])
+
   con.commit()
   con.close()
   return None
@@ -148,8 +149,8 @@ print("done.")
 print("Compiling all source files")
 build_order = generate_build_order()
 for idx,fid in enumerate(build_order):
-   print(f"Compiling {idx} of {len(list(build_order))}")
-   compile_fid(fid, args.srcdir)
+  print(f"Compiling {idx} of {len(build_order)}")
+  compile_fid(fid, args.srcdir)
 print("Compilation complete")
 
 # produce reports
