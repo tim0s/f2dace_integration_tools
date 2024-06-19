@@ -13,9 +13,10 @@ def init_db():
   cur = con.cursor()
   cur.execute("DROP TABLE IF EXISTS files;")
   cur.execute("DROP TABLE IF EXISTS errors;")
+  cur.execute("DROP TABLE IF EXISTS results;")
   cur.execute("DROP TABLE IF EXISTS dependencies;")
   cur.execute("CREATE TABLE files(id INTEGER PRIMARY KEY, name TEXT, extension TEXT, path TEXT, size INTEGER, lines INTEGER);")
-  cur.execute("CREATE TABLE errors(id INTEGER PRIMARY KEY, file_id INTEGER, error_text TEXT, error_class TEXT);")
+  cur.execute("CREATE TABLE results(id INTEGER PRIMARY KEY, file_id INTEGER, output TEXT, error TEXT, compile_start INTEGER, compile_end INTEGER);")
   cur.execute("CREATE TABLE dependencies(id INTEGER PRIMARY KEY, src_id INTEGER, dep_id INTEGER);")
   con.commit()
 
@@ -103,16 +104,17 @@ def compile_fid(file_id, srcdir):
   cmd = f"python3 ./compile_fortran.py {srcdir} {path} ./sdfgs"
   output = None
   try:
+    err_class = "success"
     res = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=180)
     output = "Stderr:\n" + str(res.stderr) + "\n\nStdout:\n" + str(res.stdout)
     if res.returncode == 0:
-      pass
+      print("Compile finished without error. Output: {output}")
     else:
-      output = "Stderr:\n" + str(res.stderr) + "\n\nStdout:\n" + str(res.stdout)
-      cur.execute(f"INSERT INTO errors (file_id, error_text, error_class) VALUES (?,?,?);", (file_id, output, "compile_error"))
+      err_class = "compile_error"
   except subprocess.TimeoutExpired:
-     cur.execute(f"INSERT INTO errors (file_id, error_text, error_class) VALUES (?,?,?);", (file_id, output, "timeout"))
-
+     output = "Stderr:\n" + str(res.stderr) + "\n\nStdout:\n" + str(res.stdout)
+     err_class = "timeout"
+  cur.execute(f"INSERT INTO results (file_id, output, error) VALUES (?,?,?);", (file_id, output, err_class))
   con.commit()
   con.close()
   return None
