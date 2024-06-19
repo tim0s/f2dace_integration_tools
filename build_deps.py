@@ -98,36 +98,52 @@ def compile_fid(file_id, srcdir):
   con = sqlite3.connect("icon.db")
   cur = con.cursor()
 
+  # these should be replaced by the code below
+  output = "no output obtained"
+  retval = 42
+  error_class = "undef"
+
   # check if all deps of this file have compiled successfully, otherwise mark this one as failed
   # due to dependencies - we gurantee that files are built in an order where dependencies are always
   # compiled first
+  run_compile = True   #assume all deps are avail, check below
   res = cur.execute(f"SELECT dep_id FROM dependencies WHERE src_id == {file_id};")
   r = res.fetchall()
-  print(f"dependencies for {str(file_id)} are {str(r)}")
-  for dep_id in r:
+  flat = [x[0] for x in r]
+  print(f"dependencies for {str(file_id)} are {str(flat)}")
+  for dep_id in flat:
     res = cur.execute(f"SELECT retval FROM results WHERE file_id == {dep_id};")
-    r = res.fetchall()
-    print(f"dependency {str(dep_id)} retval {str(r)}")
+    r = list(res.fetchall())
+    assert(len(r) == 1)
+    if r[0][0] > 0:
+      print(f"dependency {str(dep_id)} compiled with retval {str(r)} (non-zero) thus bailing out")
+      output = "None, did not run."
+      error = "dependency"
+      retval = 255
+      run_compile = False
+      break
 
-  res = cur.execute(f"SELECT path, name, extension FROM files WHERE id == {file_id};")
-  r = res.fetchall()
-  path = f"{r[0][0]}/{r[0][1]}.{r[0][2]}"
-  cmd = f"python3 ./compile_fortran.py {srcdir} {path} ./sdfgs"
-  output = None
-  try:
-    err_class = "success"
-    res = subprocess.run(cmd, shell=True, capture_output=True, timeout=180)
-    output = "Stderr:\n" + str(res.stderr) + "\n\nStdout:\n" + str(res.stdout)
-    if res.returncode == 0:
-      print(f"Compile finished without error. Output: {output}")
-    else:
-      err_class = "compile_error"
-      print("Compile finished with error, output: "+output)
-  except subprocess.TimeoutExpired:
-     output = "Stderr:\n" + str(res.stderr) + "\n\nStdout:\n" + str(res.stdout)
-     err_class = "timeout"
-     print("Compile finished with timeout, output: "+output)
-  cur.execute(f"INSERT INTO results (file_id, retval, output, error) VALUES (?,?,?,?);", (file_id, res.returncode, output, err_class))
+  if run_compile:
+      res = cur.execute(f"SELECT path, name, extension FROM files WHERE id == {file_id};")
+      r = res.fetchall()
+      path = f"{r[0][0]}/{r[0][1]}.{r[0][2]}"
+      cmd = f"python3 ./compile_fortran.py {srcdir} {path} ./sdfgs"
+      try:
+        res = subprocess.run(cmd, shell=True, capture_output=True, timeout=180)
+        output = "Stderr:\n" + str(res.stderr) + "\n\nStdout:\n" + str(res.stdout)
+        retval = res.returncode
+        if retval == 0:
+          print(f"Compile finished without error. Output: {output}")
+          err_class = "success"
+        else:
+          err_class = "compile_error"
+          print("Compile finished with non-zeoro exit code, output: "+output)
+      except subprocess.TimeoutExpired:
+        output = "Stderr:\n" + str(res.stderr) + "\n\nStdout:\n" + str(res.stdout)
+        err_class = "timeout"
+        print("Compile finished with timeout, output: "+output)
+
+  cur.execute(f"INSERT INTO results (file_id, retval, output, error) VALUES (?,?,?,?);", (file_id, retval, output, error_class))
   con.commit()
   con.close()
   return None
