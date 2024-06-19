@@ -12,11 +12,10 @@ def init_db():
   con = sqlite3.connect("icon.db")
   cur = con.cursor()
   cur.execute("DROP TABLE IF EXISTS files;")
-  cur.execute("DROP TABLE IF EXISTS errors;")
   cur.execute("DROP TABLE IF EXISTS results;")
   cur.execute("DROP TABLE IF EXISTS dependencies;")
   cur.execute("CREATE TABLE files(id INTEGER PRIMARY KEY, name TEXT, extension TEXT, path TEXT, size INTEGER, lines INTEGER);")
-  cur.execute("CREATE TABLE results(id INTEGER PRIMARY KEY, file_id INTEGER, output TEXT, error TEXT, compile_start INTEGER, compile_end INTEGER);")
+  cur.execute("CREATE TABLE results(id INTEGER PRIMARY KEY, file_id INTEGER, retval INTEGER, output TEXT, error TEXT, compile_start INTEGER, compile_end INTEGER);")
   cur.execute("CREATE TABLE dependencies(id INTEGER PRIMARY KEY, src_id INTEGER, dep_id INTEGER);")
   con.commit()
 
@@ -98,6 +97,18 @@ def generate_build_order():
 def compile_fid(file_id, srcdir):
   con = sqlite3.connect("icon.db")
   cur = con.cursor()
+
+  # check if all deps of this file have compiled successfully, otherwise mark this one as failed
+  # due to dependencies - we gurantee that files are built in an order where dependencies are always
+  # compiled first
+  res = cur.execute(f"SELECT dep_id FROM dependencies WHERE src_id == {file_id};")
+  r = res.fetchall()
+  print(f"dependencies for {str(file_id)} are {str(r)}")
+  for dep_id in r:
+    res = cur.execute(f"SELECT retval FROM results WHERE file_id == {dep_id};")
+    r = res.fetchall()
+    print(f"dependency {str(dep_id)} retval {str(r)}")
+    
   res = cur.execute(f"SELECT path, name, extension FROM files WHERE id == {file_id};")
   r = res.fetchall()
   path = f"{r[0][0]}/{r[0][1]}.{r[0][2]}"
@@ -108,7 +119,7 @@ def compile_fid(file_id, srcdir):
     res = subprocess.run(cmd, shell=True, capture_output=True, timeout=180)
     output = "Stderr:\n" + str(res.stderr) + "\n\nStdout:\n" + str(res.stdout)
     if res.returncode == 0:
-      print("Compile finished without error. Output: {output}")
+      print(f"Compile finished without error. Output: {output}")
     else:
       err_class = "compile_error"
       print("Compile finished with error, output: "+output)
@@ -116,7 +127,7 @@ def compile_fid(file_id, srcdir):
      output = "Stderr:\n" + str(res.stderr) + "\n\nStdout:\n" + str(res.stdout)
      err_class = "timeout"
      print("Compile finished with timeout, output: "+output)
-  cur.execute(f"INSERT INTO results (file_id, output, error) VALUES (?,?,?);", (file_id, output, err_class))
+  cur.execute(f"INSERT INTO results (file_id, retval, output, error) VALUES (?,?,?);", (file_id, res.returncode, output, err_class))
   con.commit()
   con.close()
   return None
