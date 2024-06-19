@@ -118,7 +118,7 @@ def compile_fid(file_id, srcdir):
     if r[0][0] > 0:
       print(f"dependency {str(dep_id)} compiled with retval {str(r)} (non-zero) thus bailing out")
       output = "None, did not run."
-      error = "dependency"
+      error_class = "dependency"
       retval = 255
       run_compile = False
       break
@@ -134,13 +134,13 @@ def compile_fid(file_id, srcdir):
         retval = res.returncode
         if retval == 0:
           print(f"Compile finished without error. Output: {output}")
-          err_class = "success"
+          error_class = "success"
         else:
-          err_class = "compile_error"
+          error_class = "compile_error"
           print("Compile finished with non-zeoro exit code, output: "+output)
       except subprocess.TimeoutExpired:
         output = "Stderr:\n" + str(res.stderr) + "\n\nStdout:\n" + str(res.stdout)
-        err_class = "timeout"
+        error_class = "timeout"
         print("Compile finished with timeout, output: "+output)
 
   cur.execute(f"INSERT INTO results (file_id, retval, output, error) VALUES (?,?,?,?);", (file_id, retval, output, error_class))
