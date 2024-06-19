@@ -23,7 +23,7 @@ From: ez82/udi/ubuntu-22.04-ef5:latest
     bash -c "cd /opt/f2dace_integration_tools/ && python3 ./preproc_all_files.py ../icon/icon-model-icon-2024.01-1-public/compile_commands.json"
 
     # compile everything in the order induced by dependencies
-    bash -c "cd /opt/f2dace_integration_tools/ && python3 ./build_deps.py ../icon/icon-model-icon-2024.01-1-public/src/"
+    # bash -c "cd /opt/f2dace_integration_tools/ && python3 ./build_deps.py ../icon/icon-model-icon-2024.01-1-public/src/"
 
 %environment
     export LC_ALL=C

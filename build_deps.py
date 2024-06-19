@@ -108,7 +108,7 @@ def compile_fid(file_id, srcdir):
     res = cur.execute(f"SELECT retval FROM results WHERE file_id == {dep_id};")
     r = res.fetchall()
     print(f"dependency {str(dep_id)} retval {str(r)}")
-    
+
   res = cur.execute(f"SELECT path, name, extension FROM files WHERE id == {file_id};")
   r = res.fetchall()
   path = f"{r[0][0]}/{r[0][1]}.{r[0][2]}"
@@ -127,7 +127,7 @@ def compile_fid(file_id, srcdir):
      output = "Stderr:\n" + str(res.stderr) + "\n\nStdout:\n" + str(res.stdout)
      err_class = "timeout"
      print("Compile finished with timeout, output: "+output)
-  cur.execute(f"INSERT INTO results (file_id, retval, output, error) VALUES (?,?,?);", (file_id, res.returncode, output, err_class))
+  cur.execute(f"INSERT INTO results (file_id, retval, output, error) VALUES (?,?,?,?);", (file_id, res.returncode, output, err_class))
   con.commit()
   con.close()
   return None
