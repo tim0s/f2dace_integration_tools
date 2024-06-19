@@ -105,7 +105,7 @@ def compile_fid(file_id, srcdir):
   output = None
   try:
     err_class = "success"
-    res = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=180)
+    res = subprocess.run(cmd, shell=True, capture_output=True, timeout=180)
     output = "Stderr:\n" + str(res.stderr) + "\n\nStdout:\n" + str(res.stdout)
     if res.returncode == 0:
       print("Compile finished without error. Output: {output}")
