@@ -111,9 +111,11 @@ def compile_fid(file_id, srcdir):
       print("Compile finished without error. Output: {output}")
     else:
       err_class = "compile_error"
+      print("Compile finished with error, output: "+output)
   except subprocess.TimeoutExpired:
      output = "Stderr:\n" + str(res.stderr) + "\n\nStdout:\n" + str(res.stdout)
      err_class = "timeout"
+     print("Compile finished with timeout, output: "+output)
   cur.execute(f"INSERT INTO results (file_id, output, error) VALUES (?,?,?);", (file_id, output, err_class))
   con.commit()
   con.close()
